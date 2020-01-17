@@ -1,24 +1,21 @@
-# -*- coding: utf-8 -*-
 # imreg.py
 
-# Copyright (c) 2011-2019, Christoph Gohlke
-# Copyright (c) 2011-2019, The Regents of the University of California
-# Produced at the Laboratory for Fluorescence Dynamics
+# Copyright (c) 2011-2020, Christoph Gohlke
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
 #
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
 #
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
+# 3. Neither the name of the copyright holder nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -43,14 +40,16 @@ translation, rotation and scale-invariant image registration [1].
 :Organization:
   Laboratory for Fluorescence Dynamics, University of California, Irvine
 
-:Version: 2019.1.1
+:License: BSD 3-Clause
+
+:Version: 2020.1.1
 
 Requirements
 ------------
-* `CPython 2.7 or 3.5+ <https://www.python.org>`_
-* `Numpy 1.13 <https://www.numpy.org>`_
-* `Scipy 1.1 <https://www.scipy.org>`_
-* `Matplotlib 2.2 <https://www.matplotlib.org>`_  (optional for plotting)
+* `CPython >= 3.6 <https://www.python.org>`_
+* `Numpy 1.14 <https://www.numpy.org>`_
+* `Scipy 1.3 <https://www.scipy.org>`_
+* `Matplotlib 3.1 <https://www.matplotlib.org>`_  (optional for plotting)
 
 Notes
 -----
@@ -62,14 +61,14 @@ An improved version is being developed at https://github.com/matejak/imreg_dft.
 
 References
 ----------
-(1) An FFT-based technique for translation, rotation and scale-invariant
-    image registration. BS Reddy, BN Chatterji.
-    IEEE Transactions on Image Processing, 5, 1266-1271, 1996
-(2) An IDL/ENVI implementation of the FFT-based algorithm for automatic
-    image registration. H Xiea, N Hicksa, GR Kellera, H Huangb, V Kreinovich.
-    Computers & Geosciences, 29, 1045-1055, 2003.
-(3) Image Registration Using Adaptive Polar Transform. R Matungka, YF Zheng,
-    RL Ewing. IEEE Transactions on Image Processing, 18(10), 2009.
+1. An FFT-based technique for translation, rotation and scale-invariant
+   image registration. BS Reddy, BN Chatterji.
+   IEEE Transactions on Image Processing, 5, 1266-1271, 1996
+2. An IDL/ENVI implementation of the FFT-based algorithm for automatic
+   image registration. H Xiea, N Hicksa, GR Kellera, H Huangb, V Kreinovich.
+   Computers & Geosciences, 29, 1045-1055, 2003.
+3. Image Registration Using Adaptive Polar Transform. R Matungka, YF Zheng,
+   RL Ewing. IEEE Transactions on Image Processing, 18(10), 2009.
 
 Examples
 --------
@@ -81,22 +80,27 @@ Examples
 >>> im0 = imread('t350380ori')
 >>> im1 = imread('t350380shf')
 >>> t0, t1 = translation(im0, im1)
+>>> t0, t1
+(20, 50)
 
 """
 
-from __future__ import division, print_function
+__version__ = '2020.1.1'
 
-__version__ = '2019.1.1'
-__docformat__ = 'restructuredtext en'
-__all__ = ('translation', 'similarity', 'similarity_matrix', 'logpolar',
-           'highpass', 'imread', 'imshow')
+__all__ = (
+    'translation', 'similarity', 'similarity_matrix', 'logpolar', 'highpass',
+    'imread', 'imshow', 'ndii'
+)
 
 import math
 
 import numpy
 from numpy.fft import fft2, ifft2, fftshift
 
-import scipy.ndimage.interpolation as ndii
+try:
+    import scipy.ndimage.interpolation as ndii
+except ImportError:
+    import ndimage.interpolation as ndii
 
 
 def translation(im0, im1):
@@ -130,9 +134,9 @@ def similarity(im0, im1):
 
     """
     if im0.shape != im1.shape:
-        raise ValueError('Images must have same shapes.')
-    elif len(im0.shape) != 2:
-        raise ValueError('Images must be 2 dimensional.')
+        raise ValueError('images must have same shapes')
+    if len(im0.shape) != 2:
+        raise ValueError('images must be 2 dimensional')
 
     f0 = fftshift(abs(fft2(im0)))
     f1 = fftshift(abs(fft2(im1)))
@@ -159,7 +163,7 @@ def similarity(im0, im1):
         angle = -180.0 * i0 / ir.shape[0]
         scale = 1.0 / (log_base ** i1)
         if scale > 1.8:
-            raise ValueError('Images are not compatible. Scale change > 1.8')
+            raise ValueError('images are not compatible. Scale change > 1.8')
 
     if angle < -90.0:
         angle += 180.0
@@ -190,10 +194,10 @@ def similarity(im0, im1):
 
     # correct parameters for ndimage's internal processing
     if angle > 0.0:
-        d = int((int(im1.shape[1] / scale) * math.sin(math.radians(angle))))
+        d = int(int(im1.shape[1] / scale) * math.sin(math.radians(angle)))
         t0, t1 = t1, d+t0
     elif angle < 0.0:
-        d = int((int(im1.shape[0] / scale) * math.sin(math.radians(angle))))
+        d = int(int(im1.shape[0] / scale) * math.sin(math.radians(angle)))
         t0, t1 = d+t1, d+t0
     scale = (im1.shape[1] - 1) / (int(im1.shape[1] / scale) - 1)
 
@@ -203,8 +207,8 @@ def similarity(im0, im1):
 def similarity_matrix(scale, angle, vector):
     """Return homogeneous transformation matrix from similarity parameters.
 
-    Transformation parameters are: isotropic scale factor, rotation angle (in
-    degrees), and translation vector (of size 2).
+    Transformation parameters are: isotropic scale factor, rotation angle
+    (in degrees), and translation vector (of size 2).
 
     The order of transformations is: scale, rotate, translate.
 
@@ -247,16 +251,16 @@ def logpolar(image, angles=None, radii=None):
 def highpass(shape):
     """Return highpass filter to be multiplied with fourier transform."""
     x = numpy.outer(
-        numpy.cos(numpy.linspace(-math.pi/2., math.pi/2., shape[0])),
-        numpy.cos(numpy.linspace(-math.pi/2., math.pi/2., shape[1])))
+        numpy.cos(numpy.linspace(-math.pi/2.0, math.pi/2.0, shape[0])),
+        numpy.cos(numpy.linspace(-math.pi/2.0, math.pi/2.0, shape[1])))
     return (1.0 - x) * (2.0 - x)
 
 
 def imread(fname, norm=True):
     """Return image data from img&hdr uint8 files."""
-    with open(fname+'.hdr', 'r') as fh:
+    with open(fname + '.hdr', 'r') as fh:
         hdr = fh.readlines()
-    img = numpy.fromfile(fname+'.img', numpy.uint8, -1)
+    img = numpy.fromfile(fname + '.img', numpy.uint8, -1)
     img.shape = int(hdr[4].split()[-1]), int(hdr[3].split()[-1])
     if norm:
         img = img.astype('float64')
@@ -267,6 +271,7 @@ def imread(fname, norm=True):
 def imshow(im0, im1, im2, im3=None, cmap=None, **kwargs):
     """Plot images using matplotlib."""
     from matplotlib import pyplot
+
     if im3 is None:
         im3 = abs(im2 - im0)
     pyplot.subplot(221)
@@ -278,3 +283,14 @@ def imshow(im0, im1, im2, im3=None, cmap=None, **kwargs):
     pyplot.subplot(224)
     pyplot.imshow(im2, cmap, **kwargs)
     pyplot.show()
+
+
+if __name__ == '__main__':
+    import os
+    import doctest
+
+    try:
+        os.chdir('data')
+    except Exception:
+        pass
+    doctest.testmod()
