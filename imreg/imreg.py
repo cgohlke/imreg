@@ -1,6 +1,6 @@
 # imreg.py
 
-# Copyright (c) 2011-2020, Christoph Gohlke
+# Copyright (c) 2011-2021, Christoph Gohlke
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,14 +42,14 @@ translation, rotation and scale-invariant image registration [1].
 
 :License: BSD 3-Clause
 
-:Version: 2020.1.1
+:Version: 2021.6.6
 
 Requirements
 ------------
-* `CPython >= 3.6 <https://www.python.org>`_
-* `Numpy 1.14 <https://www.numpy.org>`_
-* `Scipy 1.3 <https://www.scipy.org>`_
-* `Matplotlib 3.1 <https://www.matplotlib.org>`_  (optional for plotting)
+* `CPython >= 3.7 <https://www.python.org>`_
+* `Numpy 1.15 <https://www.numpy.org>`_
+* `Scipy 1.5 <https://www.scipy.org>`_
+* `Matplotlib 3.3 <https://www.matplotlib.org>`_  (optional for plotting)
 
 Notes
 -----
@@ -85,11 +85,17 @@ Examples
 
 """
 
-__version__ = '2020.1.1'
+__version__ = '2021.6.6'
 
 __all__ = (
-    'translation', 'similarity', 'similarity_matrix', 'logpolar', 'highpass',
-    'imread', 'imshow', 'ndii'
+    'translation',
+    'similarity',
+    'similarity_matrix',
+    'logpolar',
+    'highpass',
+    'imread',
+    'imshow',
+    'ndii',
 )
 
 import math
@@ -170,15 +176,15 @@ def similarity(im0, im1):
     elif angle > 90.0:
         angle -= 180.0
 
-    im2 = ndii.zoom(im1, 1.0/scale)
+    im2 = ndii.zoom(im1, 1.0 / scale)
     im2 = ndii.rotate(im2, angle)
 
     if im2.shape < im0.shape:
         t = numpy.zeros_like(im0)
-        t[:im2.shape[0], :im2.shape[1]] = im2
+        t[: im2.shape[0], : im2.shape[1]] = im2
         im2 = t
     elif im2.shape > im0.shape:
-        im2 = im2[:im0.shape[0], :im0.shape[1]]
+        im2 = im2[: im0.shape[0], : im0.shape[1]]
 
     f0 = fft2(im0)
     f1 = fft2(im2)
@@ -195,10 +201,10 @@ def similarity(im0, im1):
     # correct parameters for ndimage's internal processing
     if angle > 0.0:
         d = int(int(im1.shape[1] / scale) * math.sin(math.radians(angle)))
-        t0, t1 = t1, d+t0
+        t0, t1 = t1, d + t0
     elif angle < 0.0:
         d = int(int(im1.shape[0] / scale) * math.sin(math.radians(angle)))
-        t0, t1 = d+t1, d+t0
+        t0, t1 = d + t1, d + t0
     scale = (im1.shape[1] - 1) / (int(im1.shape[1] / scale) - 1)
 
     return im2, scale, angle, [-t0, -t1]
@@ -239,8 +245,9 @@ def logpolar(image, angles=None, radii=None):
     d = numpy.hypot(shape[0] - center[0], shape[1] - center[1])
     log_base = 10.0 ** (math.log10(d) / (radii))
     radius = numpy.empty_like(theta)
-    radius[:] = numpy.power(log_base,
-                            numpy.arange(radii, dtype='float64')) - 1.0
+    radius[:] = (
+        numpy.power(log_base, numpy.arange(radii, dtype='float64')) - 1.0
+    )
     x = radius * numpy.sin(theta) + center[0]
     y = radius * numpy.cos(theta) + center[1]
     output = numpy.empty_like(x)
@@ -251,8 +258,9 @@ def logpolar(image, angles=None, radii=None):
 def highpass(shape):
     """Return highpass filter to be multiplied with fourier transform."""
     x = numpy.outer(
-        numpy.cos(numpy.linspace(-math.pi/2.0, math.pi/2.0, shape[0])),
-        numpy.cos(numpy.linspace(-math.pi/2.0, math.pi/2.0, shape[1])))
+        numpy.cos(numpy.linspace(-math.pi / 2.0, math.pi / 2.0, shape[0])),
+        numpy.cos(numpy.linspace(-math.pi / 2.0, math.pi / 2.0, shape[1])),
+    )
     return (1.0 - x) * (2.0 - x)
 
 
