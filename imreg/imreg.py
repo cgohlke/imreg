@@ -1,6 +1,6 @@
 # imreg.py
 
-# Copyright (c) 2011-2021, Christoph Gohlke
+# Copyright (c) 2011-2022, Christoph Gohlke
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,25 +34,28 @@
 Imreg is a Python library that implements an FFT-based technique for
 translation, rotation and scale-invariant image registration [1].
 
-:Author:
-  `Christoph Gohlke <https://www.lfd.uci.edu/~gohlke/>`_
-
-:Organization:
-  Laboratory for Fluorescence Dynamics, University of California, Irvine
-
+:Author: `Christoph Gohlke <https://www.cgohlke.com>`_
 :License: BSD 3-Clause
-
-:Version: 2021.6.6
+:Version: 2022.9.27
 
 Requirements
 ------------
+
 * `CPython >= 3.7 <https://www.python.org>`_
 * `Numpy 1.15 <https://www.numpy.org>`_
 * `Scipy 1.5 <https://www.scipy.org>`_
 * `Matplotlib 3.3 <https://www.matplotlib.org>`_  (optional for plotting)
 
+Revisions
+---------
+
+2022.9.27
+
+- Fix scipy.ndimage DeprecationWarning.
+
 Notes
 -----
+
 Imreg is no longer being actively developed.
 
 This implementation is mainly for educational purposes.
@@ -61,6 +64,7 @@ An improved version is being developed at https://github.com/matejak/imreg_dft.
 
 References
 ----------
+
 1. An FFT-based technique for translation, rotation and scale-invariant
    image registration. BS Reddy, BN Chatterji.
    IEEE Transactions on Image Processing, 5, 1266-1271, 1996
@@ -72,6 +76,7 @@ References
 
 Examples
 --------
+
 >>> im0 = imread('t400')
 >>> im1 = imread('Tr19s1.3')
 >>> im2, scale, angle, (t0, t1) = similarity(im0, im1)
@@ -85,7 +90,7 @@ Examples
 
 """
 
-__version__ = '2021.6.6'
+__version__ = '2022.9.27'
 
 __all__ = (
     'translation',
@@ -95,7 +100,6 @@ __all__ = (
     'highpass',
     'imread',
     'imshow',
-    'ndii',
 )
 
 import math
@@ -104,9 +108,9 @@ import numpy
 from numpy.fft import fft2, ifft2, fftshift
 
 try:
-    import scipy.ndimage.interpolation as ndii
+    import scipy.ndimage as ndimage
 except ImportError:
-    import ndimage.interpolation as ndii
+    import ndimage  # type: ignore
 
 
 def translation(im0, im1):
@@ -161,13 +165,13 @@ def similarity(im0, im1):
     ir = abs(ifft2((f0 * f1.conjugate()) / r0))
     i0, i1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
     angle = 180.0 * i0 / ir.shape[0]
-    scale = log_base ** i1
+    scale = log_base**i1
 
     if scale > 1.8:
         ir = abs(ifft2((f1 * f0.conjugate()) / r0))
         i0, i1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
         angle = -180.0 * i0 / ir.shape[0]
-        scale = 1.0 / (log_base ** i1)
+        scale = 1.0 / (log_base**i1)
         if scale > 1.8:
             raise ValueError('images are not compatible. Scale change > 1.8')
 
@@ -176,8 +180,8 @@ def similarity(im0, im1):
     elif angle > 90.0:
         angle -= 180.0
 
-    im2 = ndii.zoom(im1, 1.0 / scale)
-    im2 = ndii.rotate(im2, angle)
+    im2 = ndimage.zoom(im1, 1.0 / scale)
+    im2 = ndimage.rotate(im2, angle)
 
     if im2.shape < im0.shape:
         t = numpy.zeros_like(im0)
@@ -196,7 +200,7 @@ def similarity(im0, im1):
     if t1 > f0.shape[1] // 2:
         t1 -= f0.shape[1]
 
-    im2 = ndii.shift(im2, [t0, t1])
+    im2 = ndimage.shift(im2, [t0, t1])
 
     # correct parameters for ndimage's internal processing
     if angle > 0.0:
@@ -251,7 +255,7 @@ def logpolar(image, angles=None, radii=None):
     x = radius * numpy.sin(theta) + center[0]
     y = radius * numpy.cos(theta) + center[1]
     output = numpy.empty_like(x)
-    ndii.map_coordinates(image, [x, y], output=output)
+    ndimage.map_coordinates(image, [x, y], output=output)
     return output, log_base
 
 
@@ -266,7 +270,7 @@ def highpass(shape):
 
 def imread(fname, norm=True):
     """Return image data from img&hdr uint8 files."""
-    with open(fname + '.hdr', 'r') as fh:
+    with open(fname + '.hdr') as fh:
         hdr = fh.readlines()
     img = numpy.fromfile(fname + '.img', numpy.uint8, -1)
     img.shape = int(hdr[4].split()[-1]), int(hdr[3].split()[-1])
