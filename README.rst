@@ -6,18 +6,40 @@ translation, rotation and scale-invariant image registration [1].
 
 :Author: `Christoph Gohlke <https://www.cgohlke.com>`_
 :License: BSD 3-Clause
-:Version: 2022.9.27
+:Version: 2024.1.2
+
+Quickstart
+----------
+
+Install the imreg package and all dependencies from the
+`Python Package Index <https://pypi.org/project/imreg/>`_::
+
+    python -m pip install -U imreg
+
+See `Examples`_ for using the programming interface.
+
+Source code and support are available on
+`GitHub <https://github.com/cgohlke/imreg>`_.
 
 Requirements
 ------------
 
-* `CPython >= 3.7 <https://www.python.org>`_
-* `Numpy 1.15 <https://www.numpy.org>`_
-* `Scipy 1.5 <https://www.scipy.org>`_
-* `Matplotlib 3.3 <https://www.matplotlib.org>`_  (optional for plotting)
+This revision was tested with the following requirements and dependencies
+(other versions may work):
+
+- `CPython <https://www.python.org>`_ 3.9.13, 3.10.11, 3.11.7, 3.12.1
+- `NumPy <https://pypi.org/project/numpy/>`_ 1.26.2
+- `Scipy <https://pypi.org/project/scipy>`_ 1.11.4
+- `Matplotlib 3.8.2 <https://pypi.org/project/matplotlib>`_
+  (optional for plotting)
 
 Revisions
 ---------
+
+2024.1.2
+
+- Add type hints.
+- Drop support for Python 3.8 and numpy < 1.23 (NEP29).
 
 2022.9.27
 
