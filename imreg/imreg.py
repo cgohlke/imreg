@@ -1,6 +1,6 @@
 # imreg.py
 
-# Copyright (c) 2011-2022, Christoph Gohlke
+# Copyright (c) 2011-2024, Christoph Gohlke
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,18 +36,40 @@ translation, rotation and scale-invariant image registration [1].
 
 :Author: `Christoph Gohlke <https://www.cgohlke.com>`_
 :License: BSD 3-Clause
-:Version: 2022.9.27
+:Version: 2024.1.2
+
+Quickstart
+----------
+
+Install the imreg package and all dependencies from the
+`Python Package Index <https://pypi.org/project/imreg/>`_::
+
+    python -m pip install -U imreg
+
+See `Examples`_ for using the programming interface.
+
+Source code and support are available on
+`GitHub <https://github.com/cgohlke/imreg>`_.
 
 Requirements
 ------------
 
-* `CPython >= 3.7 <https://www.python.org>`_
-* `Numpy 1.15 <https://www.numpy.org>`_
-* `Scipy 1.5 <https://www.scipy.org>`_
-* `Matplotlib 3.3 <https://www.matplotlib.org>`_  (optional for plotting)
+This revision was tested with the following requirements and dependencies
+(other versions may work):
+
+- `CPython <https://www.python.org>`_ 3.9.13, 3.10.11, 3.11.7, 3.12.1
+- `NumPy <https://pypi.org/project/numpy/>`_ 1.26.2
+- `Scipy <https://pypi.org/project/scipy>`_ 1.11.4
+- `Matplotlib 3.8.2 <https://pypi.org/project/matplotlib>`_
+  (optional for plotting)
 
 Revisions
 ---------
+
+2024.1.2
+
+- Add type hints.
+- Drop support for Python 3.8 and numpy < 1.23 (NEP29).
 
 2022.9.27
 
@@ -90,9 +112,11 @@ Examples
 
 """
 
-__version__ = '2022.9.27'
+from __future__ import annotations
 
-__all__ = (
+__version__ = '2024.1.2'
+
+__all__ = [
     'translation',
     'similarity',
     'similarity_matrix',
@@ -100,22 +124,31 @@ __all__ = (
     'highpass',
     'imread',
     'imshow',
-)
+]
 
 import math
+import os
+from typing import TYPE_CHECKING
 
 import numpy
-from numpy.fft import fft2, ifft2, fftshift
+from numpy.fft import fft2, fftshift, ifft2
+from scipy import ndimage
 
-try:
-    import scipy.ndimage as ndimage
-except ImportError:
-    import ndimage  # type: ignore
+if TYPE_CHECKING:
+    from typing import Any
+
+    from numpy.typing import ArrayLike, NDArray
 
 
-def translation(im0, im1):
+def translation(
+    im0: ArrayLike,
+    im1: ArrayLike,
+    /,
+) -> tuple[int, int]:
     """Return translation vector to register images."""
+    im0 = numpy.asanyarray(im0)
     shape = im0.shape
+    assert len(shape) == 2
     f0 = fft2(im0)
     f1 = fft2(im1)
     ir = abs(ifft2((f0 * f1.conjugate()) / (abs(f0) * abs(f1))))
@@ -124,11 +157,15 @@ def translation(im0, im1):
         t0 -= shape[0]
     if t1 > shape[1] // 2:
         t1 -= shape[1]
-    return [t0, t1]
+    return int(t0), int(t1)
 
 
-def similarity(im0, im1):
-    """Return similarity transformed image im1 and transformation parameters.
+def similarity(
+    im0: ArrayLike,
+    im1: ArrayLike,
+    /,
+) -> tuple[NDArray[Any], float, float, tuple[int, int]]:
+    """Return similarity transformed image `im1` and transformation parameters.
 
     Transformation parameters are: isotropic scale factor, rotation angle (in
     degrees), and translation vector.
@@ -137,16 +174,20 @@ def similarity(im0, im1):
     scale and without shear.
 
     Limitations:
-    Image shapes must be equal and square.
-    All image areas must have same scale, rotation, and shift.
-    Scale change must be less than 1.8.
-    No subpixel precision.
+
+    - Image shapes must be equal and square.
+    - All image areas must have same scale, rotation, and shift.
+    - Scale change must be less than 1.8.
+    - No subpixel precision.
 
     """
+    im0 = numpy.asanyarray(im0)
+    im1 = numpy.asanyarray(im1)
+
     if im0.shape != im1.shape:
         raise ValueError('images must have same shapes')
     if len(im0.shape) != 2:
-        raise ValueError('images must be 2 dimensional')
+        raise ValueError('images must be two-dimensional')
 
     f0 = fftshift(abs(fft2(im0)))
     f1 = fftshift(abs(fft2(im1)))
@@ -159,19 +200,19 @@ def similarity(im0, im1):
     f0, log_base = logpolar(f0)
     f1, log_base = logpolar(f1)
 
-    f0 = fft2(f0)
-    f1 = fft2(f1)
+    f0 = fft2(f0)  # type: ignore
+    f1 = fft2(f1)  # type: ignore
     r0 = abs(f0) * abs(f1)
     ir = abs(ifft2((f0 * f1.conjugate()) / r0))
     i0, i1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
-    angle = 180.0 * i0 / ir.shape[0]
-    scale = log_base**i1
+    angle: float = 180.0 * int(i0) / ir.shape[0]
+    scale: float = log_base ** int(i1)
 
     if scale > 1.8:
         ir = abs(ifft2((f1 * f0.conjugate()) / r0))
         i0, i1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
-        angle = -180.0 * i0 / ir.shape[0]
-        scale = 1.0 / (log_base**i1)
+        angle = -180.0 * int(i0) / ir.shape[0]
+        scale = 1.0 / (log_base ** int(i1))
         if scale > 1.8:
             raise ValueError('images are not compatible. Scale change > 1.8')
 
@@ -190,8 +231,8 @@ def similarity(im0, im1):
     elif im2.shape > im0.shape:
         im2 = im2[: im0.shape[0], : im0.shape[1]]
 
-    f0 = fft2(im0)
-    f1 = fft2(im2)
+    f0 = fft2(im0)  # type: ignore
+    f1 = fft2(im2)  # type: ignore
     ir = abs(ifft2((f0 * f1.conjugate()) / (abs(f0) * abs(f1))))
     t0, t1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
 
@@ -211,10 +252,14 @@ def similarity(im0, im1):
         t0, t1 = d + t1, d + t0
     scale = (im1.shape[1] - 1) / (int(im1.shape[1] / scale) - 1)
 
-    return im2, scale, angle, [-t0, -t1]
+    return im2, scale, angle, (int(-t0), int(-t1))
 
 
-def similarity_matrix(scale, angle, vector):
+def similarity_matrix(
+    scale: float,
+    angle: float,
+    vector: ArrayLike,
+) -> NDArray[Any]:
     """Return homogeneous transformation matrix from similarity parameters.
 
     Transformation parameters are: isotropic scale factor, rotation angle
@@ -235,8 +280,15 @@ def similarity_matrix(scale, angle, vector):
     return numpy.dot(T, numpy.dot(R, S))
 
 
-def logpolar(image, angles=None, radii=None):
+def logpolar(
+    image: ArrayLike,
+    /,
+    *,
+    angles: int | None = None,
+    radii: int | None = None,
+) -> tuple[NDArray[Any], float]:
     """Return log-polar transformed image and log base."""
+    image = numpy.asanyarray(image)
     shape = image.shape
     center = shape[0] / 2, shape[1] / 2
     if angles is None:
@@ -259,8 +311,8 @@ def logpolar(image, angles=None, radii=None):
     return output, log_base
 
 
-def highpass(shape):
-    """Return highpass filter to be multiplied with fourier transform."""
+def highpass(shape: tuple[int, ...]) -> NDArray[Any]:
+    """Return highpass filter to be multiplied with Fourier transform."""
     x = numpy.outer(
         numpy.cos(numpy.linspace(-math.pi / 2.0, math.pi / 2.0, shape[0])),
         numpy.cos(numpy.linspace(-math.pi / 2.0, math.pi / 2.0, shape[1])),
@@ -268,22 +320,40 @@ def highpass(shape):
     return (1.0 - x) * (2.0 - x)
 
 
-def imread(fname, norm=True):
+def imread(
+    fname: str | os.PathLike,
+    /,
+    *,
+    norm: bool = True,
+) -> NDArray[Any]:
     """Return image data from img&hdr uint8 files."""
-    with open(fname + '.hdr') as fh:
+    fname = os.fspath(fname)
+    with open(fname + '.hdr', encoding='utf-8') as fh:
         hdr = fh.readlines()
     img = numpy.fromfile(fname + '.img', numpy.uint8, -1)
     img.shape = int(hdr[4].split()[-1]), int(hdr[3].split()[-1])
     if norm:
-        img = img.astype('float64')
-        img /= 255.0
+        img = img.astype(numpy.float64)
+        img /= 255.0  # type: ignore
     return img
 
 
-def imshow(im0, im1, im2, im3=None, cmap=None, **kwargs):
+def imshow(
+    im0: ArrayLike,
+    im1: ArrayLike,
+    im2: ArrayLike,
+    im3: ArrayLike | None = None,
+    /,
+    *,
+    cmap: str | None = None,
+    **kwargs,
+) -> None:
     """Plot images using matplotlib."""
     from matplotlib import pyplot
 
+    im0 = numpy.asanyarray(im0)
+    im1 = numpy.asanyarray(im1)
+    im2 = numpy.asanyarray(im2)
     if im3 is None:
         im3 = abs(im2 - im0)
     pyplot.subplot(221)
@@ -298,7 +368,6 @@ def imshow(im0, im1, im2, im3=None, cmap=None, **kwargs):
 
 
 if __name__ == '__main__':
-    import os
     import doctest
 
     try:
