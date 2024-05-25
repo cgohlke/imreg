@@ -36,7 +36,7 @@ translation, rotation and scale-invariant image registration [1].
 
 :Author: `Christoph Gohlke <https://www.cgohlke.com>`_
 :License: BSD 3-Clause
-:Version: 2024.1.2
+:Version: 2024.5.24
 
 Quickstart
 ----------
@@ -57,14 +57,19 @@ Requirements
 This revision was tested with the following requirements and dependencies
 (other versions may work):
 
-- `CPython <https://www.python.org>`_ 3.9.13, 3.10.11, 3.11.7, 3.12.1
-- `NumPy <https://pypi.org/project/numpy/>`_ 1.26.2
-- `Scipy <https://pypi.org/project/scipy>`_ 1.11.4
-- `Matplotlib 3.8.2 <https://pypi.org/project/matplotlib>`_
+- `CPython <https://www.python.org>`_ 3.9.13, 3.10.11, 3.11.9, 3.12.3
+- `NumPy <https://pypi.org/project/numpy/>`_ 1.26.4
+- `Scipy <https://pypi.org/project/scipy>`_ 1.12.0
+- `Matplotlib 3.8.4 <https://pypi.org/project/matplotlib>`_
   (optional for plotting)
 
 Revisions
 ---------
+
+2024.5.24
+
+- Support NumPy 2.
+- Fix docstring examples not correctly rendered on GitHub.
 
 2024.1.2
 
@@ -114,7 +119,7 @@ Examples
 
 from __future__ import annotations
 
-__version__ = '2024.1.2'
+__version__ = '2024.5.24'
 
 __all__ = [
     'translation',
